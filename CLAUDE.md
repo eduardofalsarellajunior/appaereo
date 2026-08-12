@@ -62,7 +62,9 @@ Roadmap completo nas seções abaixo. Neste momento:
     Import do supabase-js usa o especificador `npm:@supabase/supabase-js@2` — o
     especificador `jsr:` causou `BOOT_ERROR` ao deployar via Management API, e
     `https://esm.sh/...` também falhou no boot; `npm:` foi o único que funcionou
-    nesse caminho de deploy.
+    nesse caminho de deploy. Inclui headers de CORS (`Access-Control-Allow-*` e
+    tratamento de `OPTIONS`) — sem isso, `supabase.functions.invoke()` funciona
+    via curl/Node mas é bloqueado pelo preflight do navegador.
   - `scripts/testar-duffel-fase1.mjs` — script Node para validar a chamada à API do
     Duffel localmente, sem depender de deploy da Edge Function.
 - Stubs com `TODO` para os motores futuros, já no lugar certo
@@ -72,21 +74,16 @@ Roadmap completo nas seções abaixo. Neste momento:
     Fase 3-4.
   - Motor 3 — detecção de distorção de preço + disparo de e-mail. Fase 4.
 - Dashboard completo (Fase 5) ainda não existe; há só `src/pages/TesteFase1.jsx`, uma
-  tela mínima para disparar a busca e ver o histórico de preço da rota fixa. O build
-  (`npm run build`) passa; a chamada real à Edge Function e ao Postgres via REST
-  (`supabase.functions.invoke`, `.from('price_history').select()`) **não foi validada
-  em navegador** nesta sessão — o ambiente de desenvolvimento (sandbox remoto) tem uma
-  política de rede que impede requisições HTTPS do Chromium a domínios externos
-  (`*.supabase.co`) mesmo configurando o proxy explicitamente; chamadas equivalentes
-  via `curl`/Node funcionam normalmente. Validar no seu navegador local antes de
-  confiar cegamente na tela.
+  tela mínima para disparar a busca e ver o histórico de preço da rota fixa. Testada
+  em navegador real (Chrome, localhost) pelo usuário — funciona ponta a ponta:
+  botão dispara a Edge Function, que consulta o Duffel e grava em `price_history`,
+  e a lista de histórico é lida de volta via `.from('price_history').select()`.
 
 ### Pendências conhecidas
 
 - Chave de produção do Duffel (a de teste usada aqui só retorna dados fictícios).
 - Variáveis de ambiente na Vercel (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) —
   passo manual do usuário, sem token da Vercel disponível neste ambiente.
-- Testar `src/pages/TesteFase1.jsx` num navegador real (ver nota acima).
 
 ## Roadmap
 
