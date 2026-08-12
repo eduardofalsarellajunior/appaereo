@@ -37,7 +37,7 @@ arquivo alinhado com o código real, não com a especificação original se ela 
   viagem, monitoramento 1x/dia). Prefira código direto e simples a frameworks/camadas
   extras.
 
-## Estado atual (Fase 1 concluída e validada)
+## Estado atual (Fases 1 e 2 concluídas e validadas)
 
 Roadmap completo nas seções abaixo. Neste momento:
 
@@ -67,9 +67,22 @@ Roadmap completo nas seções abaixo. Neste momento:
     via curl/Node mas é bloqueado pelo preflight do navegador.
   - `scripts/testar-duffel-fase1.mjs` — script Node para validar a chamada à API do
     Duffel localmente, sem depender de deploy da Edge Function.
-- Stubs com `TODO` para os motores futuros, já no lugar certo
-  (`supabase/functions/motor{1,2,3}-*/index.ts`), mas sem implementação:
-  - Motor 1 — geração de rotas candidatas (grafo de hubs + MCT). Fase 2.
+- Motor 1 (`supabase/functions/motor1-gerar-rotas-candidatas/index.ts`) **deployado e
+  testado**: recebe `{ intencao_id }`, gera todas as combinações origem→hub1→hub2→destino
+  permitidas por `max_escalas`, cruzando hubs de regiões diferentes nas rotas de 2 escalas
+  (evita absurdos tipo DXB→DOH→DXB). Roda sob demanda (chamado manualmente por enquanto —
+  a Fase 5 vai chamá-lo automaticamente ao salvar uma intenção). Insere tudo com
+  `ativa = false`; ativar candidatos específicos é curadoria manual (ver comentário no
+  topo do arquivo e especificação técnica, seção 6). Testado na intenção de teste:
+  1712 combinações geradas (16 diretas, 192 de 1 escala, 1504 de 2 escalas), 1711
+  inseridas, 1 já existente (a rota fixa do seed) deduplicada por comparação de
+  `trechos`. `mct_respeitado` nasce sempre `true` — o motor só gera topologia (pares de
+  aeroportos), sem horários reais de voo para validar MCT de verdade; isso fica para o
+  Motor 2/3, quando houver horários de trecho via Duffel. Hubs curados hoje só cobrem
+  o exemplo BR↔Ásia da especificação (Oriente Médio, EUA, Ásia); adicionar outras
+  regiões (ex. Europa) exige editar `HUBS_POR_REGIAO` no arquivo.
+- Stubs com `TODO` para os motores restantes, já no lugar certo
+  (`supabase/functions/motor{2,3}-*/index.ts`), mas sem implementação:
   - Motor 2 — monitoramento diário (cron, todas as rotas ativas, Duffel + Seats.aero).
     Fase 3-4.
   - Motor 3 — detecção de distorção de preço + disparo de e-mail. Fase 4.
@@ -90,7 +103,7 @@ Roadmap completo nas seções abaixo. Neste momento:
 | Fase | Entrega | Status |
 |---|---|---|
 | 1 | Schema Supabase + integração Duffel (cash apenas) para 1 rota de teste fixa | Concluída (com chave de teste) |
-| 2 | Motor de geração de rotas candidatas (grafo + MCT) | Não iniciado |
+| 2 | Motor de geração de rotas candidatas (grafo + MCT) | Concluída |
 | 3 | Integração Seats.aero + tabela de conversão de milhas | Não iniciado |
 | 4 | Motor de detecção de distorção + envio de e-mail | Não iniciado |
 | 5 | Painel completo (dashboard) | Não iniciado |
