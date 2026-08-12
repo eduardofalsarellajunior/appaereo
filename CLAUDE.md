@@ -37,7 +37,7 @@ arquivo alinhado com o código real, não com a especificação original se ela 
   viagem, monitoramento 1x/dia). Prefira código direto e simples a frameworks/camadas
   extras.
 
-## Estado atual (Fases 1 e 2 concluídas e validadas)
+## Estado atual (Fases 1 e 2 concluídas; Fase 3 parcial)
 
 Roadmap completo nas seções abaixo. Neste momento:
 
@@ -81,11 +81,35 @@ Roadmap completo nas seções abaixo. Neste momento:
   Motor 2/3, quando houver horários de trecho via Duffel. Hubs curados hoje só cobrem
   o exemplo BR↔Ásia da especificação (Oriente Médio, EUA, Ásia); adicionar outras
   regiões (ex. Europa) exige editar `HUBS_POR_REGIAO` no arquivo.
-- Stubs com `TODO` para os motores restantes, já no lugar certo
-  (`supabase/functions/motor{2,3}-*/index.ts`), mas sem implementação:
-  - Motor 2 — monitoramento diário (cron, todas as rotas ativas, Duffel + Seats.aero).
-    Fase 3-4.
-  - Motor 3 — detecção de distorção de preço + disparo de e-mail. Fase 4.
+- Motor 2 (`supabase/functions/motor2-monitoramento-diario/index.ts`) **deployado e
+  testado**: percorre todas as `rotas_candidatas` com `ativa = true` (hoje só a rota
+  fixa GRU→NRT), precifica no Duffel somando cada trecho (interlining virtual =
+  passagens separadas por trecho) e grava em `price_history`; busca milhas no
+  Seats.aero só se `SEATS_AERO_API_KEY` existir (ainda não existe — pula essa parte
+  sem falhar o dinheiro). Sem `data_inicio`/`data_fim` na intenção, cai para a mesma
+  janela de teste das Fases 1/3. O cálculo de "melhor opção do dia" (dinheiro vs.
+  milhas convertidas via `mileage_conversion`) não é persistido — fica para o
+  dashboard/Motor 3 calcular em tempo de leitura, já que o schema não tem coluna
+  para isso. **Ainda não está agendado como cron** — roda sob demanda; ativar o
+  agendamento automático diário (pg_cron) é uma decisão pendente do usuário, por
+  gerar custo/chamadas de API recorrentes sem supervisão.
+- Integração Seats.aero (`supabase/functions/buscar-milhas-fase3/index.ts`) —
+  código implementado (contrato da API confirmado na documentação oficial:
+  `GET https://seats.aero/partnerapi/search`, header `Partner-Authorization`), mas
+  **não deployado nem testado** — falta o usuário criar a conta/chave (pode exigir
+  plano pago, diferente do Duffel). Essa API não retorna taxas de embarque, só
+  custo em milhas e assentos por cabine; `taxas_embarque` fica `null` em
+  `mileage_history` por limitação da fonte, não do código.
+- `mileage_conversion` populada (`supabase/sql/004_seed_mileage_conversion.sql`) com
+  valores de referência de mercado (Smiles/LATAM Pass R$30, TudoAzul R$25, Livelo
+  R$22, Esfera R$20 por 1.000 milhas) — placeholder até o usuário ajustar para sua
+  percepção pessoal, como pede a especificação (seção 9). Livelo/Esfera são
+  programas de pontos "de banco" (moeda de transferência), não aparecem em buscas
+  do Seats.aero diretamente — só entram na conta quando o usuário transfere pontos
+  para um programa de milhagem aérea.
+- Stub com `TODO` para o motor restante (`supabase/functions/motor3-*/index.ts`),
+  sem implementação: Motor 3 — detecção de distorção de preço + disparo de
+  e-mail. Fase 4.
 - Dashboard completo (Fase 5) ainda não existe; há só `src/pages/TesteFase1.jsx`, uma
   tela mínima para disparar a busca e ver o histórico de preço da rota fixa. Testada
   em navegador real (Chrome, localhost) pelo usuário — funciona ponta a ponta:
@@ -95,8 +119,11 @@ Roadmap completo nas seções abaixo. Neste momento:
 ### Pendências conhecidas
 
 - Chave de produção do Duffel (a de teste usada aqui só retorna dados fictícios).
+- Chave de API do Seats.aero (conta/plano ainda não criados pelo usuário).
 - Variáveis de ambiente na Vercel (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) —
   passo manual do usuário, sem token da Vercel disponível neste ambiente.
+- Decisão do usuário sobre agendar o Motor 2 como cron diário de verdade (pg_cron) —
+  hoje ele só roda sob demanda.
 
 ## Roadmap
 
@@ -104,6 +131,6 @@ Roadmap completo nas seções abaixo. Neste momento:
 |---|---|---|
 | 1 | Schema Supabase + integração Duffel (cash apenas) para 1 rota de teste fixa | Concluída (com chave de teste) |
 | 2 | Motor de geração de rotas candidatas (grafo + MCT) | Concluída |
-| 3 | Integração Seats.aero + tabela de conversão de milhas | Não iniciado |
+| 3 | Integração Seats.aero + tabela de conversão de milhas | Parcial (mileage_conversion e Motor 2 prontos; falta chave do Seats.aero) |
 | 4 | Motor de detecção de distorção + envio de e-mail | Não iniciado |
 | 5 | Painel completo (dashboard) | Não iniciado |
