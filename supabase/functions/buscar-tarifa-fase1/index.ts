@@ -14,6 +14,21 @@ const DUFFEL_API_KEY = Deno.env.get('DUFFEL_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
+// Chamada via supabase.functions.invoke() no browser dispara um preflight OPTIONS
+// e exige Access-Control-Allow-* na resposta real — sem isso, o navegador bloqueia
+// antes mesmo do corpo chegar ao código (curl/Node não sofrem essa checagem).
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+function jsonResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+  })
+}
+
 // Rota candidata fixa da Fase 1 (ver supabase/sql/002_seed_fase1.sql).
 // TODO(Fase 2): substituir por leitura de `rotas_candidatas` (todas as ativas), não fixo.
 const ROTA_FIXA = {
@@ -71,18 +86,19 @@ async function buscarOfertaDuffel() {
   }
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: CORS_HEADERS })
+  }
+
   if (!DUFFEL_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return new Response(
-      JSON.stringify({ erro: 'Faltam secrets: DUFFEL_API_KEY, SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY' }),
-      { status: 500 }
-    )
+    return jsonResponse({ erro: 'Faltam secrets: DUFFEL_API_KEY, SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY' }, 500)
   }
 
   try {
     const resultado = await buscarOfertaDuffel()
     if (!resultado) {
-      return new Response(JSON.stringify({ ok: true, mensagem: 'Nenhuma oferta encontrada' }), { status: 200 })
+      return jsonResponse({ ok: true, mensagem: 'Nenhuma oferta encontrada' })
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -103,12 +119,9 @@ Deno.serve(async () => {
 
     if (error) throw error
 
-    return new Response(
-      JSON.stringify({ ok: true, preco: resultado.preco, moeda: resultado.moeda, cia_aerea: resultado.cia_aerea }),
-      { status: 200 }
-    )
+    return jsonResponse({ ok: true, preco: resultado.preco, moeda: resultado.moeda, cia_aerea: resultado.cia_aerea })
   } catch (err) {
     const mensagem = err instanceof Error ? err.message : JSON.stringify(err)
-    return new Response(JSON.stringify({ erro: mensagem }), { status: 500 })
+    return jsonResponse({ erro: mensagem }, 500)
   }
 })
