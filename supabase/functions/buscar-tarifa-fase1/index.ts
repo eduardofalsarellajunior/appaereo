@@ -8,7 +8,7 @@
 // Secrets necessários (supabase secrets set ...):
 //   DUFFEL_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const DUFFEL_API_KEY = Deno.env.get('DUFFEL_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
@@ -87,12 +87,9 @@ Deno.serve(async () => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    const { data: rota } = await supabase
-      .from('rotas_candidatas')
-      .select('id')
-      .contains('trechos', [{ origem: ROTA_FIXA.origem, destino: ROTA_FIXA.destino }])
-      .limit(1)
-      .single()
+    // Fase 1 tem apenas 1 rota candidata fixa (ver supabase/sql/002_seed_fase1.sql).
+    // TODO(Fase 2): quando houver várias, resolver a rota certa por id explícito.
+    const { data: rota } = await supabase.from('rotas_candidatas').select('id').limit(1).single()
 
     const { error } = await supabase.from('price_history').insert({
       rota_candidata_id: rota?.id ?? null,
@@ -111,6 +108,7 @@ Deno.serve(async () => {
       { status: 200 }
     )
   } catch (err) {
-    return new Response(JSON.stringify({ erro: String(err) }), { status: 500 })
+    const mensagem = err instanceof Error ? err.message : JSON.stringify(err)
+    return new Response(JSON.stringify({ erro: mensagem }), { status: 500 })
   }
 })
