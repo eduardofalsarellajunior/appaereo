@@ -37,7 +37,7 @@ arquivo alinhado com o código real, não com a especificação original se ela 
   viagem, monitoramento 1x/dia). Prefira código direto e simples a frameworks/camadas
   extras.
 
-## Estado atual (Fases 1 e 2 concluídas; Fase 3 parcial)
+## Estado atual (Fases 1 e 2 concluídas; Fases 3 e 4 parciais)
 
 Roadmap completo nas seções abaixo. Neste momento:
 
@@ -107,9 +107,21 @@ Roadmap completo nas seções abaixo. Neste momento:
   programas de pontos "de banco" (moeda de transferência), não aparecem em buscas
   do Seats.aero diretamente — só entram na conta quando o usuário transfere pontos
   para um programa de milhagem aérea.
-- Stub com `TODO` para o motor restante (`supabase/functions/motor3-*/index.ts`),
-  sem implementação: Motor 3 — detecção de distorção de preço + disparo de
-  e-mail. Fase 4.
+- Motor 3 (`supabase/functions/motor3-deteccao-distorcao/index.ts`) **deployado e
+  testado**: o Motor 2 chama automaticamente após gravar preço/milhas de cada rota.
+  Implementa 2 das 3 regras da especificação (seção 8):
+  - Queda relativa (≥25% vs. mediana dos últimos preços/custo em milhas, mínimo 3
+    amostras de histórico) — testado com um preço sintético (38.4% de queda
+    detectado corretamente, dado de teste removido depois).
+  - Piso absoluto — nova coluna `rotas_candidatas.piso_absoluto` (nullable,
+    `supabase/sql/005_add_piso_absoluto.sql`), curadoria manual, sem valor definido
+    ainda para nenhuma rota.
+  - **Não implementada**: "cabine superior custa igual ou menos que cabine
+    inferior" — exigiria o Motor 2 buscar múltiplas cabines por rota (hoje só
+    busca a cabine da intenção); fica de TODO para quando isso for necessário.
+  - E-mail via Resend implementado (grava em `alertas_disparados` com
+    `enviado_email`), mas **não testado** — sem `RESEND_API_KEY` ainda, todo alerta
+    grava com `enviado_email = false` e pula o envio sem falhar.
 - Dashboard completo (Fase 5) ainda não existe; há só `src/pages/TesteFase1.jsx`, uma
   tela mínima para disparar a busca e ver o histórico de preço da rota fixa. Testada
   em navegador real (Chrome, localhost) pelo usuário — funciona ponta a ponta:
@@ -120,6 +132,7 @@ Roadmap completo nas seções abaixo. Neste momento:
 
 - Chave de produção do Duffel (a de teste usada aqui só retorna dados fictícios).
 - Chave de API do Seats.aero (conta/plano ainda não criados pelo usuário).
+- Chave da Resend (para o Motor 3 realmente enviar e-mail; hoje só grava o alerta).
 - Variáveis de ambiente na Vercel (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) —
   passo manual do usuário, sem token da Vercel disponível neste ambiente.
 - Decisão do usuário sobre agendar o Motor 2 como cron diário de verdade (pg_cron) —
@@ -132,5 +145,5 @@ Roadmap completo nas seções abaixo. Neste momento:
 | 1 | Schema Supabase + integração Duffel (cash apenas) para 1 rota de teste fixa | Concluída (com chave de teste) |
 | 2 | Motor de geração de rotas candidatas (grafo + MCT) | Concluída |
 | 3 | Integração Seats.aero + tabela de conversão de milhas | Parcial (mileage_conversion e Motor 2 prontos; falta chave do Seats.aero) |
-| 4 | Motor de detecção de distorção + envio de e-mail | Não iniciado |
+| 4 | Motor de detecção de distorção + envio de e-mail | Parcial (detecção pronta; falta chave do Resend) |
 | 5 | Painel completo (dashboard) | Não iniciado |

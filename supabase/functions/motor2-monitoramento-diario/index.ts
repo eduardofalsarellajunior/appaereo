@@ -187,6 +187,23 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Motor 3 avalia distorção logo após os dados novos chegarem — mais fácil
+      // manter a checagem sempre em dia do que rodá-la separada depois.
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/motor3-deteccao-distorcao`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ rota_candidata_id: rota.id }),
+        })
+        const json = await resp.json()
+        item.alertas_disparados = json.alertas_disparados ?? 0
+      } catch (err) {
+        item.erro_motor3 = err instanceof Error ? err.message : String(err)
+      }
+
       resultados.push(item)
     }
 
