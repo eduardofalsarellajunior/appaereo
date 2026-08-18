@@ -74,17 +74,45 @@ try {
     }
   })
 
+  // Popup promocional/newsletter costuma aparecer alguns segundos depois de
+  // carregar a página (por isso o 02-cookies não pegou) e fica por cima de tudo
+  // com id="popupOverlay", bloqueando qualquer clique. Tenta fechar de várias
+  // formas; se nada funcionar, remove o overlay do DOM à força — ele só atrapalha,
+  // não precisamos interagir com o conteúdo dele.
+  await etapa(page, '03-fechar-popup', async () => {
+    await page.waitForTimeout(2000) // dá tempo do popup terminar de aparecer
+
+    await page.keyboard.press('Escape').catch(() => {})
+
+    const fechar = page.locator(
+      '#popupOverlay [aria-label="Fechar"], #popupOverlay .close, #popupOverlay [class*="close"], #popupOverlay button:has-text("Fechar"), #popupOverlay svg'
+    )
+    if (await fechar.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+      await fechar.first().click({ timeout: 5000 }).catch(() => {})
+    }
+
+    const aindaVisivel = await page
+      .locator('#popupOverlay.show, #popupOverlay[class*="show"]')
+      .first()
+      .isVisible({ timeout: 2000 })
+      .catch(() => false)
+
+    if (aindaVisivel) {
+      await page.evaluate(() => document.getElementById('popupOverlay')?.remove())
+    }
+  })
+
   // TODO(calibrar): a busca da Smiles normalmente tem abas "Passagem" e um toggle
   // Dinheiro/Milhas — o seletor abaixo é uma tentativa por texto visível, mais
   // resistente a mudança de classe CSS do que um seletor tipo .btn-milhas.
-  await etapa(page, '03-aba-milhas', async () => {
+  await etapa(page, '04-aba-milhas', async () => {
     const abaMilhas = page.getByText(/milhas/i).first()
     if (await abaMilhas.isVisible({ timeout: 5000 }).catch(() => false)) {
       await abaMilhas.click()
     }
   })
 
-  await etapa(page, '04-origem', async () => {
+  await etapa(page, '05-origem', async () => {
     const campoOrigem = page.getByPlaceholder(/origem|de onde/i).first()
     await campoOrigem.click()
     await campoOrigem.fill(origem)
@@ -92,7 +120,7 @@ try {
     await page.keyboard.press('Enter')
   })
 
-  await etapa(page, '05-destino', async () => {
+  await etapa(page, '06-destino', async () => {
     const campoDestino = page.getByPlaceholder(/destino|para onde/i).first()
     await campoDestino.click()
     await campoDestino.fill(destino)
@@ -100,20 +128,20 @@ try {
     await page.keyboard.press('Enter')
   })
 
-  await etapa(page, '06-data', async () => {
+  await etapa(page, '07-data', async () => {
     const campoData = page.getByPlaceholder(/data|ida/i).first()
     await campoData.click()
     await campoData.fill(dataBR(data))
     await page.keyboard.press('Escape')
   })
 
-  await etapa(page, '07-buscar', async () => {
+  await etapa(page, '08-buscar', async () => {
     const botaoBuscar = page.getByRole('button', { name: /buscar/i }).first()
     await botaoBuscar.click()
     await page.waitForTimeout(6000) // resultado de milhas costuma demorar mais que dinheiro
   })
 
-  const resultados = await etapa(page, '08-resultado', async () => {
+  const resultados = await etapa(page, '09-resultado', async () => {
     // Sem seletor confiável ainda para os cards de resultado — captura todo texto
     // visível da área de resultado como ponto de partida pra eu calibrar depois.
     return page.evaluate(() => document.body.innerText.slice(0, 3000))
