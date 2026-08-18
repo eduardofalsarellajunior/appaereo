@@ -61,17 +61,30 @@ opções, tente na ordem:
    a estar logado, tão sensível quanto a senha).
 
 **Opção B — importar a sessão do seu Chrome normal (contorna o bloqueio da opção A,
-já que nunca passa pela tela de login automatizada):**
-1. Instale a extensão **Cookie-Editor** no Chrome.
-2. Logado no smiles.com.br no seu Chrome normal, abra a extensão → **Export** → **Copy
-   to clipboard** (formato JSON).
-3. Cole o conteúdo num arquivo local `scrapers/smiles/cookies-chrome-export.json`
-   (nunca cole esse conteúdo no chat — é equivalente a estar logado).
-4. Converta pro formato do Playwright:
-   ```bash
-   node scrapers/smiles/converter-cookies-chrome.mjs
-   ```
-   Isso gera o mesmo `scrapers/smiles/smiles.session.json` da opção A.
+já que nunca passa pela tela de login automatizada). Duas formas, use a que for mais
+fácil:**
+
+*B1 — sem instalar nada, só o DevTools do Chrome:*
+1. Logado em smiles.com.br, aperte **F12** → aba **Network**.
+2. Aperte **F5** pra recarregar e capturar uma requisição nova.
+3. Clique na primeira requisição pra `www.smiles.com.br` na lista.
+4. Em **Headers** → **Request Headers**, ache a linha `cookie:` → copie só o valor
+   (botão direito → Copy value, ou selecione manualmente depois de "cookie:").
+5. Cole num arquivo local `scrapers/smiles/cookies-raw.txt` (nunca cole no chat).
+
+*B2 — com uma extensão de cookies (se preferir e achar uma disponível: procure por
+"Cookie-Editor", "EditThisCookie" ou similar na Chrome Web Store — o nome exato varia):*
+1. Logado no smiles.com.br, abra a extensão → **Export** → **Copy to clipboard**
+   (formato JSON).
+2. Cole o conteúdo num arquivo local `scrapers/smiles/cookies-chrome-export.json`
+   (nunca cole no chat).
+
+**Depois de B1 ou B2**, converta pro formato do Playwright (o script detecta sozinho
+qual dos dois arquivos você criou):
+```bash
+node scrapers/smiles/converter-cookies-chrome.mjs
+```
+Isso gera o mesmo `scrapers/smiles/smiles.session.json` da opção A.
 
 Qualquer uma das duas opções, o resultado final é o mesmo arquivo. A partir daí, rode
 a busca normalmente — ela detecta a sessão salva sozinha:
