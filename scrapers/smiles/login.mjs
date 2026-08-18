@@ -36,7 +36,7 @@ export async function loginSmiles(page, { usuario, senha }, { salvarDebug }) {
   // banimento de conta de verdade.
   const bloqueado = await page
     .locator(
-      'iframe[src*="recaptcha"], iframe[src*="hcaptcha"], text=/verifique que você não é um robô/i, text=/código de verificação/i, text=/enviamos um código/i'
+      'iframe[src*="recaptcha"], iframe[src*="hcaptcha"], text=/verifique que você não é um robô/i, text=/código de verificação/i, text=/enviamos um código/i, text=/código de acesso/i'
     )
     .first()
     .isVisible({ timeout: 3000 })

@@ -9,10 +9,11 @@
 //   npm install --save-dev playwright && npx playwright install chromium
 //   node scrapers/smiles/buscar-milhas.mjs GRU NRT 2026-10-15
 //
-// Uso com login (pra pegar promoções de clube/cliente — ver scrapers/README.md
-// sobre os riscos de automatizar login antes de configurar isso):
-//   cp scrapers/.env.example scrapers/.env   # preencha SMILES_USUARIO/SMILES_SENHA
-//   node --env-file=scrapers/.env scrapers/smiles/buscar-milhas.mjs GRU NRT 2026-10-15
+// Uso com login (pra pegar promoções de clube/cliente): o Smiles pede verificação
+// em 2 etapas (WhatsApp/e-mail) a cada login, o que não dá pra automatizar (nem
+// devemos tentar). A solução é logar UMA VEZ manualmente e reaproveitar a sessão:
+//   node --env-file=scrapers/.env scrapers/smiles/login-interativo.mjs
+//   node scrapers/smiles/buscar-milhas.mjs GRU NRT 2026-10-15   (detecta a sessão salva sozinho)
 //
 // Se travar numa etapa, veja scrapers/_debug/<etapa>.png e .html, e me mande.
 
@@ -20,10 +21,12 @@ import { chromium } from 'playwright'
 import { writeFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { existsSync } from 'node:fs'
 import { loginSmiles } from './login.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DEBUG_DIR = path.join(__dirname, '..', '_debug')
+const SESSION_PATH = path.join(__dirname, 'smiles.session.json')
 
 const [, , origem, destino, data] = process.argv
 if (!origem || !destino || !data) {
@@ -58,20 +61,36 @@ function dataBR(iso) {
   return `${dia}/${mes}/${ano}`
 }
 
+const temSessaoSalva = existsSync(SESSION_PATH)
+
 const browser = await chromium.launch({ headless: true })
-const page = await browser.newPage({
+const contextOptions = {
   userAgent:
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   viewport: { width: 1366, height: 900 },
   locale: 'pt-BR',
-})
+}
+if (temSessaoSalva) contextOptions.storageState = SESSION_PATH
+
+const context = await browser.newContext(contextOptions)
+const page = await context.newPage()
 
 try {
   const { SMILES_USUARIO, SMILES_SENHA } = process.env
-  if (SMILES_USUARIO && SMILES_SENHA) {
-    console.log('[info] credenciais encontradas, fazendo login antes de buscar...')
-    await loginSmiles(page, { usuario: SMILES_USUARIO, senha: SMILES_SENHA }, { salvarDebug })
-    console.log('[ok] login')
+
+  if (temSessaoSalva) {
+    console.log('[info] sessão salva encontrada (scrapers/smiles/smiles.session.json) — pulando login')
+  } else if (SMILES_USUARIO && SMILES_SENHA) {
+    console.log('[info] sem sessão salva ainda. Tentando login direto (provavelmente vai pedir 2FA)...')
+    try {
+      await loginSmiles(page, { usuario: SMILES_USUARIO, senha: SMILES_SENHA }, { salvarDebug })
+      console.log('[ok] login')
+    } catch (err) {
+      console.error(`[falhou] login: ${err.message}`)
+      console.error('   -> rode uma vez: node --env-file=scrapers/.env scrapers/smiles/login-interativo.mjs')
+      console.error('      isso resolve o 2FA manualmente e salva a sessão pras próximas buscas.')
+      throw err
+    }
   } else {
     console.log('[info] sem SMILES_USUARIO/SMILES_SENHA no ambiente — buscando anônimo (sem promoções de clube)')
   }

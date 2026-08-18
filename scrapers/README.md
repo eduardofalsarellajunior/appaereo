@@ -35,15 +35,25 @@ npx playwright install chromium
 ## Login (opcional, pra pegar promoções de clube/cliente)
 
 Login revela preços que não aparecem pra visitante anônimo, mas é **muito mais
-vigiado contra automação** do que busca anônima — é onde companhias investem mais em
-anti-fraude (CAPTCHA, verificação de dispositivo, bloqueio por padrão suspeito). Como
-essa conta tem milhas de verdade, trate com cuidado:
+vigiado contra automação** do que busca anônima. Confirmado na prática: o Smiles pede
+verificação em 2 etapas (código por WhatsApp ou e-mail) a cada tentativa de login — e
+não vamos automatizar a leitura desse código, existe justamente pra impedir isso.
 
-- **Nunca cole usuário/senha no chat.** Configure em `scrapers/.env` (copie de
-  `scrapers/.env.example`) — esse arquivo já está no `.gitignore` da raiz, nunca é
-  commitado.
-- Rode com `node --env-file=scrapers/.env scrapers/smiles/buscar-milhas.mjs ...` em
-  vez do `node scrapers/...` simples, pra carregar as credenciais.
-- Se aparecer CAPTCHA ou verificação em 2 etapas, o script **para e avisa** em vez de
-  tentar contornar — não existe forma automática segura de resolver isso, e a conta é
-  sua, não vale o risco de banimento por insistir.
+A solução é fazer login **uma vez, manualmente**, e reaproveitar a sessão autenticada
+(cookies) nas buscas seguintes — o mesmo princípio de "lembrar este dispositivo" do
+navegador:
+
+1. **Nunca cole usuário/senha no chat.** Configure em `scrapers/.env` (copie de
+   `scrapers/.env.example`) — esse arquivo já está no `.gitignore`, nunca é commitado.
+2. Rode o login interativo **uma vez** (abre uma janela de navegador de verdade —
+   resolva o código de 2FA ali normalmente, depois aperte Enter no terminal):
+   ```bash
+   node --env-file=scrapers/.env scrapers/smiles/login-interativo.mjs
+   ```
+   Isso salva `scrapers/smiles/smiles.session.json` (também no `.gitignore` — equivale
+   a estar logado, tão sensível quanto a senha).
+3. A partir daí, rode a busca normalmente — ela detecta a sessão salva sozinha:
+   ```bash
+   node scrapers/smiles/buscar-milhas.mjs GRU NRT 2026-10-15
+   ```
+4. Quando a sessão expirar (o site vai parecer deslogado de novo), repita o passo 2.

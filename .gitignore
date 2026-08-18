@@ -17,6 +17,11 @@ dist-ssr
 .env.*
 !.env.example
 
+# Scrapers: sessão autenticada (cookies) e prints/HTML de debug podem conter
+# dados de conta logada — nunca commitar.
+scrapers/_debug/
+scrapers/**/*.session.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
