@@ -41,8 +41,15 @@ não vamos automatizar a leitura desse código, existe justamente pra impedir is
 
 A solução é fazer login **uma vez, manualmente**, e reaproveitar a sessão autenticada
 (cookies) nas buscas seguintes — o mesmo princípio de "lembrar este dispositivo" do
-navegador:
+navegador.
 
+**Atenção**: na prática, a própria tela de login do Smiles está atrás de proteção
+anti-bot (erro genérico "vamos tentar novamente?" ao tentar logar via Playwright,
+mesmo com senha certa — confirmado comparando com login manual no Chrome normal, que
+funciona sem problema). Ou seja, `login-interativo.mjs` pode não funcionar. Duas
+opções, tente na ordem:
+
+**Opção A — login interativo (mais simples, se não for bloqueado):**
 1. **Nunca cole usuário/senha no chat.** Configure em `scrapers/.env` (copie de
    `scrapers/.env.example`) — esse arquivo já está no `.gitignore`, nunca é commitado.
 2. Rode o login interativo **uma vez** (abre uma janela de navegador de verdade —
@@ -52,7 +59,22 @@ navegador:
    ```
    Isso salva `scrapers/smiles/smiles.session.json` (também no `.gitignore` — equivale
    a estar logado, tão sensível quanto a senha).
-3. A partir daí, rode a busca normalmente — ela detecta a sessão salva sozinha:
+
+**Opção B — importar a sessão do seu Chrome normal (contorna o bloqueio da opção A,
+já que nunca passa pela tela de login automatizada):**
+1. Instale a extensão **Cookie-Editor** no Chrome.
+2. Logado no smiles.com.br no seu Chrome normal, abra a extensão → **Export** → **Copy
+   to clipboard** (formato JSON).
+3. Cole o conteúdo num arquivo local `scrapers/smiles/cookies-chrome-export.json`
+   (nunca cole esse conteúdo no chat — é equivalente a estar logado).
+4. Converta pro formato do Playwright:
+   ```bash
+   node scrapers/smiles/converter-cookies-chrome.mjs
+   ```
+   Isso gera o mesmo `scrapers/smiles/smiles.session.json` da opção A.
+
+Qualquer uma das duas opções, o resultado final é o mesmo arquivo. A partir daí, rode
+a busca normalmente — ela detecta a sessão salva sozinha:
    ```bash
    node scrapers/smiles/buscar-milhas.mjs GRU NRT 2026-10-15
    ```

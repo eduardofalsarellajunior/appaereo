@@ -21,6 +21,7 @@ dist-ssr
 # dados de conta logada — nunca commitar.
 scrapers/_debug/
 scrapers/**/*.session.json
+scrapers/**/cookies-*-export.json
 
 # Editor directories and files
 .vscode/*
