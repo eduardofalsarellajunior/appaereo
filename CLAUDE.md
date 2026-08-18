@@ -36,6 +36,12 @@ arquivo alinhado com o código real, não com a especificação original se ela 
 - Sem abstrações prematuras: é um projeto pessoal de baixo volume (3-4 intenções de
   viagem, monitoramento 1x/dia). Prefira código direto e simples a frameworks/camadas
   extras.
+- **`scrapers/` é uma frente experimental separada**, fora de `supabase/functions/`:
+  busca por automação de navegador (Playwright) simulando a busca manual em sites de
+  companhias/programas de milhas, em vez de API paga. Não roda no Supabase (Edge
+  Functions não sustentam um Chromium de verdade) — roda local ou, futuramente, num
+  servidor Node dedicado. Ver `scrapers/README.md` para o fluxo de calibração (cada
+  site quebra de forma independente quando muda o layout).
 
 ## Estado atual (Fases 1 e 2 concluídas; Fases 3 e 4 parciais)
 
