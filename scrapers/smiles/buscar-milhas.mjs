@@ -5,9 +5,14 @@
 // menos uma etapa precise de ajuste de seletor — é por isso que cada etapa salva um
 // print + o HTML da página em scrapers/_debug/, pra calibrar rápido.
 //
-// Uso:
+// Uso (busca anônima):
 //   npm install --save-dev playwright && npx playwright install chromium
 //   node scrapers/smiles/buscar-milhas.mjs GRU NRT 2026-10-15
+//
+// Uso com login (pra pegar promoções de clube/cliente — ver scrapers/README.md
+// sobre os riscos de automatizar login antes de configurar isso):
+//   cp scrapers/.env.example scrapers/.env   # preencha SMILES_USUARIO/SMILES_SENHA
+//   node --env-file=scrapers/.env scrapers/smiles/buscar-milhas.mjs GRU NRT 2026-10-15
 //
 // Se travar numa etapa, veja scrapers/_debug/<etapa>.png e .html, e me mande.
 
@@ -15,6 +20,7 @@ import { chromium } from 'playwright'
 import { writeFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { loginSmiles } from './login.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DEBUG_DIR = path.join(__dirname, '..', '_debug')
@@ -61,6 +67,15 @@ const page = await browser.newPage({
 })
 
 try {
+  const { SMILES_USUARIO, SMILES_SENHA } = process.env
+  if (SMILES_USUARIO && SMILES_SENHA) {
+    console.log('[info] credenciais encontradas, fazendo login antes de buscar...')
+    await loginSmiles(page, { usuario: SMILES_USUARIO, senha: SMILES_SENHA }, { salvarDebug })
+    console.log('[ok] login')
+  } else {
+    console.log('[info] sem SMILES_USUARIO/SMILES_SENHA no ambiente — buscando anônimo (sem promoções de clube)')
+  }
+
   await etapa(page, '01-home', async () => {
     await page.goto('https://www.smiles.com.br/', { waitUntil: 'domcontentloaded', timeout: 45000 })
     await page.waitForTimeout(2000) // deixa banners/cookies renderizarem antes de interagir

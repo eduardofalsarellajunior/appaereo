@@ -31,3 +31,19 @@ primeira versão de cada scraper é uma tentativa fundamentada, não uma valida�
 npm install --save-dev playwright
 npx playwright install chromium
 ```
+
+## Login (opcional, pra pegar promoções de clube/cliente)
+
+Login revela preços que não aparecem pra visitante anônimo, mas é **muito mais
+vigiado contra automação** do que busca anônima — é onde companhias investem mais em
+anti-fraude (CAPTCHA, verificação de dispositivo, bloqueio por padrão suspeito). Como
+essa conta tem milhas de verdade, trate com cuidado:
+
+- **Nunca cole usuário/senha no chat.** Configure em `scrapers/.env` (copie de
+  `scrapers/.env.example`) — esse arquivo já está no `.gitignore` da raiz, nunca é
+  commitado.
+- Rode com `node --env-file=scrapers/.env scrapers/smiles/buscar-milhas.mjs ...` em
+  vez do `node scrapers/...` simples, pra carregar as credenciais.
+- Se aparecer CAPTCHA ou verificação em 2 etapas, o script **para e avisa** em vez de
+  tentar contornar — não existe forma automática segura de resolver isso, e a conta é
+  sua, não vale o risco de banimento por insistir.
